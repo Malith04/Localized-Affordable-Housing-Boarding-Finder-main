@@ -766,8 +766,10 @@ export default function BodimaHomePage() {
               longitude: activeLng + 0.002,
               address_text: newListing.address_text || 'Near Campus Gate',
               nearest_landmark: newListing.nearest_landmark || (selectedGate ? selectedGate.name : selectedUniversity.shortName),
-              is_available: newListing.is_available,
-              images: ['https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80'],
+              is_available: Boolean(newListing.is_available ?? true),
+              images: newListing.photos && newListing.photos.length > 0
+                ? newListing.photos
+                : ['https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80'],
               created_at: new Date().toISOString(),
               distance_meters: 250,
               host_name: 'You (Verified Landlord)',
