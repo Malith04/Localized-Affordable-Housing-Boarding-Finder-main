@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { RoommatePost } from '@/types/bodima';
 import { SRI_LANKAN_UNIVERSITIES } from '@/lib/constants/universities';
-import { X, Users, Sparkles, GraduationCap, CheckCircle2 } from 'lucide-react';
+import { X, Users, Sparkles, GraduationCap, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface CreateRoommatePostModalProps {
   isOpen: boolean;
@@ -29,11 +29,53 @@ export const CreateRoommatePostModal: React.FC<CreateRoommatePostModalProps> = (
   const [preferredLocations, setPreferredLocations] = useState('');
   const [bio, setBio] = useState('');
 
+  // Validation States
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const formContainerRef = useRef<HTMLFormElement>(null);
+
   if (!isOpen) return null;
+
+  const handleClose = () => {
+    setErrorMessage(null);
+    setAttemptedSubmit(false);
+    onClose();
+  };
+
+  const validateForm = () => {
+    const isNameEmpty = !studentName.trim();
+    const isPhoneEmpty = !phoneNumber.trim();
+    const cleanedPhone = phoneNumber.replace(/[\s\-+]/g, '');
+    const isPhoneValid = /^\d{9,11}$/.test(cleanedPhone);
+
+    if (isNameEmpty && isPhoneEmpty) {
+      return 'Please enter both your Full Name and WhatsApp Number (නම සහ WhatsApp අංකය අවශ්‍යයි).';
+    }
+    if (isNameEmpty) {
+      return 'Please enter your Full Name so batchmates can identify you (නම ඇතුළත් කරන්න).';
+    }
+    if (isPhoneEmpty) {
+      return 'Please enter your WhatsApp Number so potential roommates can contact you (WhatsApp අංකය අවශ්‍යයි).';
+    }
+    if (!isPhoneValid) {
+      return 'Please enter a valid 9 or 10-digit Sri Lankan phone number (e.g. 0771234567 or +94771234567).';
+    }
+    return null;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!studentName || !phoneNumber) return;
+    setAttemptedSubmit(true);
+
+    const err = validateForm();
+    if (err) {
+      setErrorMessage(err);
+      formContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setErrorMessage(null);
+    setAttemptedSubmit(false);
 
     const selectedUni = SRI_LANKAN_UNIVERSITIES.find((u) => u.id === universityId) || SRI_LANKAN_UNIVERSITIES[0];
     const locs = preferredLocations
@@ -42,7 +84,7 @@ export const CreateRoommatePostModal: React.FC<CreateRoommatePostModalProps> = (
 
     const newPost: RoommatePost = {
       id: 'roommate-' + Date.now(),
-      student_name: studentName,
+      student_name: studentName.trim(),
       avatar_url:
         gender === 'male'
           ? 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=400&q=80'
@@ -50,7 +92,7 @@ export const CreateRoommatePostModal: React.FC<CreateRoommatePostModalProps> = (
       gender,
       university_id: selectedUni.id,
       university_name: selectedUni.name,
-      faculty: faculty || 'General Faculty',
+      faculty: faculty.trim() || 'General Faculty',
       academic_year: academicYear,
       budget_per_person: Number(budgetPerPerson),
       preferred_locations: locs,
@@ -58,15 +100,19 @@ export const CreateRoommatePostModal: React.FC<CreateRoommatePostModalProps> = (
       needed_roommates_count: 1,
       lifestyle_tags: ['Non-Smoker', 'Clean & Respectful', 'Team Player'],
       study_habit: studyHabit,
-      bio: bio || `Looking for batchmates to share an affordable boarding room or annex near ${selectedUni.shortName}.`,
+      bio: bio.trim() || `Looking for batchmates to share an affordable boarding room or annex near ${selectedUni.shortName}.`,
       phone_number: phoneNumber.startsWith('+') ? phoneNumber : `+94${phoneNumber.replace(/^0/, '')}`,
       is_verified_student: true,
       created_at: new Date().toISOString(),
     };
 
     onPostCreated(newPost);
-    onClose();
+    handleClose();
   };
+
+  const isNameMissing = attemptedSubmit && !studentName.trim();
+  const cleanedPhone = phoneNumber.replace(/[\s\-+]/g, '');
+  const isPhoneInvalid = attemptedSubmit && (!phoneNumber.trim() || !/^\d{9,11}$/.test(cleanedPhone));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -91,7 +137,7 @@ export const CreateRoommatePostModal: React.FC<CreateRoommatePostModalProps> = (
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
@@ -99,35 +145,96 @@ export const CreateRoommatePostModal: React.FC<CreateRoommatePostModalProps> = (
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs">
+        <form 
+          ref={formContainerRef}
+          onSubmit={handleSubmit} 
+          noValidate
+          className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs"
+        >
+          {/* Caution Message Banner */}
+          {errorMessage && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start gap-3 shadow-md animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    Caution / අවවාදයයි
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 mt-0.5">
+                  {errorMessage}
+                </p>
+                <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                  Please fill in the highlighted required blanks before publishing your roommate request.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5 transition"
+                title="Dismiss message"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Full Name & Phone Number */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Your Full Name (නම) *
+                Your Full Name (නම) <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
-                required
                 placeholder="e.g. Kasun Perera"
                 value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                onChange={(e) => {
+                  setStudentName(e.target.value);
+                  if (errorMessage && e.target.value.trim()) setErrorMessage(null);
+                }}
+                className={`w-full px-3.5 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white transition outline-none ${
+                  isNameMissing
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20 dark:bg-rose-950/20'
+                    : 'border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
+                }`}
               />
+              {isNameMissing && (
+                <p className="text-[11px] font-semibold text-rose-500 dark:text-rose-400 mt-1 flex items-center gap-1 animate-in fade-in">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Please enter your full name (අනිවාර්යයි)
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                WhatsApp Number *
+                WhatsApp Number <span className="text-rose-500">*</span>
               </label>
               <input
                 type="tel"
-                required
                 placeholder="e.g. 0771234567"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                onChange={(e) => {
+                  setPhoneNumber(e.target.value);
+                  if (errorMessage && e.target.value.trim()) setErrorMessage(null);
+                }}
+                className={`w-full px-3.5 py-2.5 rounded-xl border bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white transition outline-none ${
+                  isPhoneInvalid
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20 dark:bg-rose-950/20'
+                    : 'border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500'
+                }`}
               />
+              {isPhoneInvalid && (
+                <p className="text-[11px] font-semibold text-rose-500 dark:text-rose-400 mt-1 flex items-center gap-1 animate-in fade-in">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  {!phoneNumber.trim()
+                    ? 'WhatsApp number is required (අනිවාර්යයි)'
+                    : 'Please enter a valid 9 or 10-digit phone number'}
+                </p>
+              )}
             </div>
           </div>
 
@@ -276,7 +383,13 @@ export const CreateRoommatePostModal: React.FC<CreateRoommatePostModalProps> = (
           </div>
 
           {/* Action Button */}
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
+            {errorMessage && (
+              <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400 animate-in fade-in">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                <span>Please fill in the required blanks above to publish</span>
+              </div>
+            )}
             <button
               type="submit"
               className="w-full py-3 px-4 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white shadow-lg shadow-emerald-600/20 transition-all text-sm flex items-center justify-center gap-2"
