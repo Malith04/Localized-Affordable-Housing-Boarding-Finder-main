@@ -8,6 +8,7 @@ import { searchNearbyBodimAction } from '@/app/actions/searchBodim';
 import { generateGeoAnchoredMockListings } from '@/lib/mock/mockListings';
 import { INITIAL_MOCK_ROOMMATES } from '@/lib/mock/mockRoommates';
 import { ListingCard } from '@/components/listings/ListingCard';
+import { ListingDetailModal } from '@/components/listings/ListingDetailModal';
 import { RoommateCard } from '@/components/roommates/RoommateCard';
 import { CreateRoommatePostModal } from '@/components/roommates/CreateRoommatePostModal';
 import { CEBCalculatorModal } from '@/components/calculator/CEBCalculatorModal';
@@ -74,6 +75,7 @@ export default function BodimaHomePage() {
     return listings.filter((l) => l.target_audience === audienceFilter || !l.target_audience);
   }, [listings, audienceFilter]);
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [selectedListingForModal, setSelectedListingForModal] = useState<Listing | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isMockDataActive, setIsMockDataActive] = useState(true);
@@ -561,6 +563,7 @@ export default function BodimaHomePage() {
                       onSelect={(l) => setSelectedListingId(l.id)}
                       onLocateOnMap={handleLocateOnMap}
                       onToggleShortlist={handleToggleShortlist}
+                      onViewDetails={(l) => setSelectedListingForModal(l)}
                     />
                   ))}
                 </div>
@@ -627,6 +630,9 @@ export default function BodimaHomePage() {
                   selectedListingId={selectedListingId}
                   onSelectListing={(listing) => {
                     setSelectedListingId(listing.id);
+                  }}
+                  onInspectDetails={(listing) => {
+                    setSelectedListingForModal(listing);
                   }}
                   className="h-full w-full"
                 />
@@ -789,6 +795,15 @@ export default function BodimaHomePage() {
             ...prev,
           ]);
         }}
+      />
+
+      {/* Interactive Listing Details Modal & Photo Gallery (Feature 1) */}
+      <ListingDetailModal
+        listing={selectedListingForModal}
+        isOpen={Boolean(selectedListingForModal)}
+        onClose={() => setSelectedListingForModal(null)}
+        isShortlisted={selectedListingForModal ? shortlistedListingIds.includes(selectedListingForModal.id) : false}
+        onToggleShortlist={handleToggleShortlist}
       />
 
       {/* Footer - Full Width Responsive */}

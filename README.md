@@ -92,5 +92,5 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 npm install
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:4000](http://localhost:4000) in your browser.
 *(Note: If Supabase keys are not provided yet, Bodima automatically activates its built-in geo-anchored offline preview dataset so the UI and map work instantly!)*

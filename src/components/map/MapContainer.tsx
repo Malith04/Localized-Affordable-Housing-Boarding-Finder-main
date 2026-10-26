@@ -10,6 +10,7 @@ interface MapContainerProps {
   searchRadiusMeters: number;
   selectedListingId?: string | null;
   onSelectListing?: (listing: Listing) => void;
+  onInspectDetails?: (listing: Listing) => void;
   className?: string;
 }
 
@@ -19,6 +20,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({
   searchRadiusMeters,
   selectedListingId,
   onSelectListing,
+  onInspectDetails,
   className = 'h-[550px] w-full',
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -156,24 +158,39 @@ export const MapContainer: React.FC<MapContainerProps> = ({
             icon: pinIcon,
           });
 
-          const popupContent = `
-            <div style="font-family: inherit; font-size: 12px; width: 220px; padding: 4px;">
-              <strong style="display: block; font-size: 13px; margin-bottom: 2px; color: #0f172a;">${listing.title}</strong>
-              <div style="color: #059669; font-weight: 800; font-size: 15px; margin-bottom: 4px;">
-                ${formatLKR(listing.monthly_rent)} <span style="font-size: 11px; font-weight: 400; color: #64748b;">/ mo</span>
-              </div>
-              <div style="color: #64748b; font-size: 11px; margin-bottom: 6px;">
-                📍 ${listing.nearest_landmark || listing.address_text}
-              </div>
-              <div style="font-size: 10px; color: #334155; display: flex; gap: 4px; flex-wrap: wrap;">
-                <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${listing.room_type}</span>
-                <span style="background: #ecfdf5; color: #047857; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${listing.gender_preference}</span>
-                <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px;">${listing.electricity_type}</span>
-              </div>
+          const popupEl = document.createElement('div');
+          popupEl.style.fontFamily = 'inherit';
+          popupEl.style.fontSize = '12px';
+          popupEl.style.width = '230px';
+          popupEl.style.padding = '4px';
+
+          popupEl.innerHTML = `
+            <strong style="display: block; font-size: 13px; margin-bottom: 2px; color: #0f172a; line-height: 1.3;">${listing.title}</strong>
+            <div style="color: #059669; font-weight: 800; font-size: 15px; margin-bottom: 4px;">
+              ${formatLKR(listing.monthly_rent)} <span style="font-size: 11px; font-weight: 400; color: #64748b;">/ mo</span>
             </div>
+            <div style="color: #64748b; font-size: 11px; margin-bottom: 6px;">
+              📍 ${listing.nearest_landmark || listing.address_text}
+            </div>
+            <div style="font-size: 10px; color: #334155; display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
+              <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${listing.room_type}</span>
+              <span style="background: #ecfdf5; color: #047857; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${listing.gender_preference}</span>
+              <span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px;">${listing.electricity_type}</span>
+            </div>
+            <button class="map-inspect-btn" style="width: 100%; padding: 7px 10px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 2px 6px rgba(5,150,105,0.3);">
+              📷 Inspect Room & Photos
+            </button>
           `;
 
-          marker.bindPopup(popupContent, { offset: [0, -12] });
+          const inspectBtn = popupEl.querySelector('.map-inspect-btn');
+          if (inspectBtn && onInspectDetails) {
+            inspectBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              onInspectDetails(listing);
+            });
+          }
+
+          marker.bindPopup(popupEl, { offset: [0, -12] });
 
           marker.on('click', () => {
             onSelectListing?.(listing);
